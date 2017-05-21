@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html ng-app="Chińczyk">
+<head>
+  <meta charset="UTF-8">
+  <title>Chińczyk</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+</head>
+<body ng-controller="MainCtrl">
+  <svg ng-attr-width="{{boardWidth}}" ng-attr-height="{{boardHeight}}">
+    <style type="text/css">
+      svg {
+        background: lightgray;
+      }
+      rect.b0 {
+        fill: lightgray;
+      }
+      rect.b10 {
+        fill: white;
+      }
+      rect.b10000, rect.b100 {
+        fill: #f55;
+      }
+      rect.b1000 {
+        fill: #faa;
+      }
+      rect.b20000, rect.b200 {
+        fill: #55f;
+      }
+      rect.b2000 {
+        fill: #aaf;
+      }
+      rect.b30000, rect.b300 {
+        fill: #5f5;
+      }
+      rect.b3000 {
+        fill: #afa;
+      }
+      rect.b40000, rect.b400 {
+        fill: #ff5;
+      }
+      rect.b4000 {
+        fill: #ffa;
+      }
+      circle.p0 {
+        fill-opacity: 0.0;
+      }
+      circle.p1 {
+        fill: #f00;
+        stroke: #888;
+      }
+      circle.p2 {
+        fill: #00f;
+        stroke: #888;
+      }
+      circle.p3 {
+        fill: #0f0;
+        stroke: #888;
+      }
+      circle.p4 {
+        fill: #ff0;
+        stroke: #888;
+      }
+      .d0 {
+        fill-opacity: 0.0;
+        stroke-opacity: 0.0;
+      }
+    </style>
+    <g>
+      <g ng-repeat="row in board">
+        <g ng-repeat="col in row track by $index">
+          <rect ng-attr-width="{{tileSize}}" ng-attr-height="{{tileSize}}"
+            ng-attr-x="{{tileOffsetX($index)}}" ng-attr-y="{{tileOffsetY($parent.$index)}}"
+            ng-class="bgClass(col)"/>
+            <circle ng-attr-cx="{{pawnOffsetX($index)}}" ng-attr-cy="{{pawnOffsetY($parent.$index)}}"
+              ng-attr-r="{{pawnRadius}}" ng-class="pawnClass(col)"/>
+        </g>
+      </g>
+    </g>
+    <g ng-repeat="diceObject in diceObjects" ng-attr-transform="{{diceObject.transform}}">
+      <rect ng-attr-width="{{diceSize}}" ng-attr-height="{{diceSize}}" ng-class="getDiceClass($index + 1)"/>
+      <circle cx="10" cy="10" r="5" ng-class="getDotClass($index + 1, [4, 5, 6])"/>
+      <circle cx="34" cy="10" r="5" ng-class="getDotClass($index + 1, [2, 3, 4, 5, 6])"/>
+      <circle cx="10" cy="22" r="5" ng-class="getDotClass($index + 1, [6])"/>
+      <circle cx="22" cy="22" r="5" ng-class="getDotClass($index + 1, [1, 3, 5])"/>
+      <circle cx="34" cy="22" r="5" ng-class="getDotClass($index + 1, [6])"/>
+      <circle cx="10" cy="34" r="5" ng-class="getDotClass($index + 1, [2, 3, 4, 5, 6])"/>
+      <circle cx="34" cy="34" r="5" ng-class="getDotClass($index + 1, [4, 5, 6])"/>
+    </g>
+  </svg>
+  <button ng-click="triggerGame()" ng-disabled="gamePausing">{{gamePaused ? "start" : "pause"}}</button>
+  <script type="text/javascript" src="game.js"/>
+</body>
+</html>

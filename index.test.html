@@ -1,0 +1,260 @@
+<html>
+  <head>
+    <!-- Jasmine References -->
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/jasmine/2.3.3/jasmine.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/2.3.3/jasmine.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/2.3.3/jasmine-html.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jasmine/2.3.3/boot.min.js"></script>
+
+    <!-- Angular and Angular Mock references -->
+    <script type="text/javascript" src="https://code.angularjs.org/1.4.0-rc.2/angular.min.js"></script>
+    <script type="text/javascript" src="https://code.angularjs.org/1.4.0-rc.2/angular-mocks.js"></script>
+
+    <script type="text/javascript" src="game.js"/>
+  </head>
+  <body></body>
+  <script type="text/javascript">
+    describe('tools', function() {
+      const tools = Tools();
+      describe('div', function() {
+        it('8 div 2 returns 4', function() {
+          expect(tools.div(8, 2)).toBe(4);
+        });
+        it('1 div 2 returns 0', function() {
+          expect(tools.div(1, 2)).toBe(0);
+        });
+      });
+      describe('arrayEquals', function() {
+        it('empty arrays returns true', function() {
+          expect(tools.arrayEquals([], [])).toBe(true);
+        });
+        it('arrays with different length returns false', function() {
+          expect(tools.arrayEquals([], [1])).toBe(false);
+        });
+        it('arrays with same content returns true', function() {
+          expect(tools.arrayEquals([1, 2], [1, 2])).toBe(true);
+        });
+        it('arrays of different content returns false', function() {
+          expect(tools.arrayEquals([1, 2], [2, 1])).toBe(false);
+        });
+      });
+    });
+
+    describe('board', function() {
+      var board;
+      var offsetBoard;
+      var p1, p2;
+      beforeEach(function() {
+        board = Board(Tools());
+        offsetBoard = board.offsetBoard;
+        p1 = board.players[0];
+        p2 = board.players[1];
+      });
+      describe('getPawn', function() {
+        it('[0, 0] contains p1', function() {
+          expect(board.getPawn([0, 0])).toBe(p1);
+        });
+        it('outside track contains 0', function() {
+          expect(board.getPawn([2, 0])).toBe(0);
+        });
+      });
+      describe('setPawn', function() {
+        it('sets pawn', function() {
+          const location = [5, 5];
+          expect(board.getPawn(location)).not.toBe(p1);
+          board.setPawn(p1, location);
+          expect(board.getPawn(location)).toBe(p1);
+        });
+      });
+      describe('removePawn', function() {
+        it('removes pawn', function() {
+          const location = [5, 5];
+          board.setPawn(p1, location);
+          expect(board.removePawn(location)).toBe(p1);
+          expect(board.getPawn(location)).toBe(0);
+        });
+      });
+      describe('movePawn', function() {
+        it('moves pawn to empty field', function() {
+          const fromCoords = [0, 0];
+          const toCoords = [4, 0];
+          board.movePawn(fromCoords, toCoords);
+          expect(board.getPawn(fromCoords)).toBe(0);
+          expect(board.getPawn(toCoords)).toBe(p1);
+        });
+        it('resets other player', function() {
+          const p1FromCoords = [0, 0];
+          const p2FromCoords = [0, 9];
+          const toCoords = [4, 0];
+
+          board.movePawn(p1FromCoords, toCoords);
+          expect(board.getPawn(p1FromCoords)).toBe(0);
+          expect(board.getPawn(toCoords)).toBe(p1);
+
+          board.movePawn(p2FromCoords, toCoords);
+          expect(board.getPawn(p2FromCoords)).toBe(0);
+          expect(board.getPawn(toCoords)).toBe(p2);
+          expect(board.getPawn(p1FromCoords)).toBe(p1);
+        });
+        it('moving pawn in dry run does not change board state', function() {
+          const fromCoords = [0, 0];
+          const toCoords = [4, 0];
+          board.movePawn(fromCoords, toCoords, true);
+          expect(board.getPawn(fromCoords)).toBe(p1);
+          expect(board.getPawn(toCoords)).toBe(0);
+        });
+      });
+      describe('offsetBoard', function() {
+        describe('getPawn', function() {
+          it('origin contains p1', function() {
+            expect(offsetBoard.getPawn(p1, -1)).toBe(p1);
+          });
+          it('start does not contain any pawn', function() {
+            expect(offsetBoard.getPawn(p1, 0)).toBe(0);
+          });
+        });
+        describe('movePawn', function() {
+          it('moves pawn to empty field', function() {
+            offsetBoard.movePawn(p1, -1, 0);
+            expect(offsetBoard.getPawn(p1, 0)).toBe(p1);
+            expect(board.getPawn([0, 0])).toBe(0);
+            expect(offsetBoard.getOffsets(p1)).toEqual([0, -1, -1, -1]);
+            expect(board.getPawn([4, 0])).toBe(p1);
+
+            offsetBoard.movePawn(p1, 0, 1);
+            expect(offsetBoard.getPawn(p1, 1)).toBe(p1);
+            expect(board.getPawn([4, 1])).toBe(p1);
+            expect(offsetBoard.getPawn(p1, 0)).toBe(0);
+            expect(board.getPawn([4, 0])).toBe(0);
+            expect(offsetBoard.getOffsets(p1)).toEqual([1, -1, -1, -1]);
+          });
+          it('resets other player', function() {
+            offsetBoard.movePawn(p1, -1, 0);
+            offsetBoard.movePawn(p2, -1, 30);
+            expect(offsetBoard.getPawn(p1, 0)).toBe(p2);
+            expect(board.getPawn([4, 0])).toBe(p2);
+            expect(offsetBoard.getOffsets(p1)).toEqual([-1, -1, -1, -1]);
+            expect(board.getPawn([0, 0])).toBe(p1);
+            expect(offsetBoard.getOffsets(p2)).toEqual([30, -1, -1, -1]);
+          });
+          it('move pawn to destination', function() {
+            offsetBoard.movePawn(p1, -1, 45);
+            expect(offsetBoard.getOffsets(p1)).toEqual([40, -1, -1, -1]);
+            expect(board.getPawn([5, 4])).toBe(p1);
+
+            offsetBoard.movePawn(p1, -1, 43);
+            expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, -1, -1]);
+            expect(board.getPawn([5, 3])).toBe(p1);
+
+            offsetBoard.movePawn(p1, -1, 41);
+            expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, 40, -1]);
+            expect(board.getPawn([5, 2])).toBe(p1);
+
+            offsetBoard.movePawn(p1, -1, 40);
+            expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, 40, 40]);
+            expect(board.getPawn([5, 1])).toBe(p1);
+          });
+        });
+        describe('evaluatePawnMove', function() {
+          it('evaluates move to start', function() {
+            expect(offsetBoard.evaluatePawnMove(p1, -1, 0)).toEqual([-3, -4, -4, -4]);
+          });
+        });
+        describe('anythingInOrigin', function() {
+          it('returns true when all pawns are in origin', function() {
+            expect(offsetBoard.anythingInOrigin(p1)).toBe(true);
+          });
+          it('returns true when one pawn leaves origin', function() {
+            offsetBoard.movePawn(p1, -1, 0);
+            expect(offsetBoard.anythingInOrigin(p1)).toBe(true);
+          });
+          it('returns false when origin is empty', function() {
+            offsetBoard.movePawn(p1, -1, 0);
+            offsetBoard.movePawn(p1, -1, 1);
+            offsetBoard.movePawn(p1, -1, 2);
+            offsetBoard.movePawn(p1, -1, 3);
+            expect(offsetBoard.anythingInOrigin(p1)).toBe(false);
+          });
+        });
+      });
+    });
+    describe('MoveEngine', function() {
+      var board;
+      var offsetBoard;
+      var moveEngine;
+      var p1, p2;
+      beforeEach(function() {
+        board = Board(Tools());
+        offsetBoard = board.offsetBoard;
+        moveEngine = MoveEngine(offsetBoard);
+        p1 = board.players[0];
+        p2 = board.players[1];
+      });
+      describe('getAllowedMoves', function() {
+        it('returns no move when dice is not 6 and all pawns are in origin', function() {
+          expect(moveEngine.getAllowedMoves(p1, 3)).toEqual([]);
+        });
+        it('returns -1->0 move when dice is 6 and all pawns are in origin', function() {
+          expect(moveEngine.getAllowedMoves(p1, 6)).toEqual([{
+            from: -1,
+            to: 0,
+            eval: [-3, -4, -4, -4]
+          }]);
+        });
+        it('returns 0->3 move when pawn is on start and dice is 3', function() {
+          offsetBoard.movePawn(p1, -1, 0);
+          expect(moveEngine.getAllowedMoves(p1, 3)).toEqual([{
+            from: 0,
+            to: 3,
+            eval: [0, -4, -4, -4]
+          }]);
+        });
+        it('returns -1->0 and 0->6 when one pawn is on start and dice is 6', function() {
+          offsetBoard.movePawn(p1, -1, 0);
+          expect(moveEngine.getAllowedMoves(p1, 6)).toEqual([
+            {
+              from: -1,
+              to: 0,
+              eval: [-3, -4, -4, -4]
+            }, {
+              from: 0,
+              to: 6,
+              eval: [3, -4, -4, -4]
+            }]);
+        });
+      });
+      describe('movePawn', function() {
+        it('moves pawn', function() {
+          moveEngine.movePawn(p1, {from: -1, to: 3});
+          expect(offsetBoard.getPawn(p1, 3)).toBe(p1);
+        });
+      });
+    });
+
+    angular.module('calculatorApp', []).controller('CalculatorController', function CalculatorController($scope) {
+      $scope.sum = function() {
+        $scope.z = $scope.x + $scope.y;
+      };
+    });
+
+    /* Test Code */
+    describe('calculator', function () {
+
+      beforeEach(module('calculatorApp'));
+      var $controller;
+      beforeEach(inject(function(_$controller_){
+        $controller = _$controller_;
+      }));
+      describe('sum', function () {
+        it('1 + 1 should equal 2', function () {
+          var $scope = {};
+          var controller = $controller('CalculatorController', { $scope: $scope });
+          $scope.x = 1;
+          $scope.y = 2;
+          $scope.sum();
+          expect($scope.z).toBe(3);
+        });
+      });
+    });
+  </script>
+</html>
