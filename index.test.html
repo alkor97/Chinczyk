@@ -24,20 +24,6 @@
           expect(tools.div(1, 2)).toBe(0);
         });
       });
-      describe('arrayEquals', function() {
-        it('empty arrays returns true', function() {
-          expect(tools.arrayEquals([], [])).toBe(true);
-        });
-        it('arrays with different length returns false', function() {
-          expect(tools.arrayEquals([], [1])).toBe(false);
-        });
-        it('arrays with same content returns true', function() {
-          expect(tools.arrayEquals([1, 2], [1, 2])).toBe(true);
-        });
-        it('arrays of different content returns false', function() {
-          expect(tools.arrayEquals([1, 2], [2, 1])).toBe(false);
-        });
-      });
     });
 
     describe('board', function() {
@@ -52,26 +38,10 @@
       });
       describe('getPawn', function() {
         it('[0, 0] contains p1', function() {
-          expect(board.getPawn([0, 0])).toBe(p1);
+          expect(board.getPawn([0, 0]).player).toBe(p1);
         });
         it('outside track contains 0', function() {
-          expect(board.getPawn([2, 0])).toBe(0);
-        });
-      });
-      describe('setPawn', function() {
-        it('sets pawn', function() {
-          const location = [5, 5];
-          expect(board.getPawn(location)).not.toBe(p1);
-          board.setPawn(p1, location);
-          expect(board.getPawn(location)).toBe(p1);
-        });
-      });
-      describe('removePawn', function() {
-        it('removes pawn', function() {
-          const location = [5, 5];
-          board.setPawn(p1, location);
-          expect(board.removePawn(location)).toBe(p1);
-          expect(board.getPawn(location)).toBe(0);
+          expect(board.getPawn([2, 0]).player).toBe(0);
         });
       });
       describe('movePawn', function() {
@@ -79,8 +49,8 @@
           const fromCoords = [0, 0];
           const toCoords = [4, 0];
           board.movePawn(fromCoords, toCoords);
-          expect(board.getPawn(fromCoords)).toBe(0);
-          expect(board.getPawn(toCoords)).toBe(p1);
+          expect(board.getPawn(fromCoords).player).toBe(0);
+          expect(board.getPawn(toCoords).player).toBe(p1);
         });
         it('resets other player', function() {
           const p1FromCoords = [0, 0];
@@ -88,20 +58,20 @@
           const toCoords = [4, 0];
 
           board.movePawn(p1FromCoords, toCoords);
-          expect(board.getPawn(p1FromCoords)).toBe(0);
-          expect(board.getPawn(toCoords)).toBe(p1);
+          expect(board.getPawn(p1FromCoords).player).toBe(0);
+          expect(board.getPawn(toCoords).player).toBe(p1);
 
           board.movePawn(p2FromCoords, toCoords);
-          expect(board.getPawn(p2FromCoords)).toBe(0);
-          expect(board.getPawn(toCoords)).toBe(p2);
-          expect(board.getPawn(p1FromCoords)).toBe(p1);
+          expect(board.getPawn(p2FromCoords).player).toBe(0);
+          expect(board.getPawn(toCoords).player).toBe(p2);
+          expect(board.getPawn(p1FromCoords).player).toBe(p1);
         });
         it('moving pawn in dry run does not change board state', function() {
           const fromCoords = [0, 0];
           const toCoords = [4, 0];
           board.movePawn(fromCoords, toCoords, true);
-          expect(board.getPawn(fromCoords)).toBe(p1);
-          expect(board.getPawn(toCoords)).toBe(0);
+          expect(board.getPawn(fromCoords).player).toBe(p1);
+          expect(board.getPawn(toCoords).player).toBe(0);
         });
       });
       describe('offsetBoard', function() {
@@ -117,42 +87,42 @@
           it('moves pawn to empty field', function() {
             offsetBoard.movePawn(p1, -1, 0);
             expect(offsetBoard.getPawn(p1, 0)).toBe(p1);
-            expect(board.getPawn([0, 0])).toBe(0);
+            expect(board.getPawn([0, 0]).player).toBe(0);
             expect(offsetBoard.getOffsets(p1)).toEqual([0, -1, -1, -1]);
-            expect(board.getPawn([4, 0])).toBe(p1);
+            expect(board.getPawn([4, 0]).player).toBe(p1);
 
             offsetBoard.movePawn(p1, 0, 1);
             expect(offsetBoard.getPawn(p1, 1)).toBe(p1);
-            expect(board.getPawn([4, 1])).toBe(p1);
+            expect(board.getPawn([4, 1]).player).toBe(p1);
             expect(offsetBoard.getPawn(p1, 0)).toBe(0);
-            expect(board.getPawn([4, 0])).toBe(0);
+            expect(board.getPawn([4, 0]).player).toBe(0);
             expect(offsetBoard.getOffsets(p1)).toEqual([1, -1, -1, -1]);
           });
           it('resets other player', function() {
             offsetBoard.movePawn(p1, -1, 0);
             offsetBoard.movePawn(p2, -1, 30);
             expect(offsetBoard.getPawn(p1, 0)).toBe(p2);
-            expect(board.getPawn([4, 0])).toBe(p2);
+            expect(board.getPawn([4, 0]).player).toBe(p2);
             expect(offsetBoard.getOffsets(p1)).toEqual([-1, -1, -1, -1]);
-            expect(board.getPawn([0, 0])).toBe(p1);
+            expect(board.getPawn([0, 0]).player).toBe(p1);
             expect(offsetBoard.getOffsets(p2)).toEqual([30, -1, -1, -1]);
           });
           it('move pawn to destination', function() {
             offsetBoard.movePawn(p1, -1, 45);
             expect(offsetBoard.getOffsets(p1)).toEqual([40, -1, -1, -1]);
-            expect(board.getPawn([5, 4])).toBe(p1);
+            expect(board.getPawn([5, 4]).player).toBe(p1);
 
             offsetBoard.movePawn(p1, -1, 43);
             expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, -1, -1]);
-            expect(board.getPawn([5, 3])).toBe(p1);
+            expect(board.getPawn([5, 3]).player).toBe(p1);
 
             offsetBoard.movePawn(p1, -1, 41);
             expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, 40, -1]);
-            expect(board.getPawn([5, 2])).toBe(p1);
+            expect(board.getPawn([5, 2]).player).toBe(p1);
 
             offsetBoard.movePawn(p1, -1, 40);
             expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, 40, 40]);
-            expect(board.getPawn([5, 1])).toBe(p1);
+            expect(board.getPawn([5, 1]).player).toBe(p1);
           });
         });
         describe('evaluatePawnMove', function() {

@@ -38,10 +38,6 @@ var Board = function(tools) {
   ];
 
   var board;
-  function restart() {
-    board = initial;
-  }
-  restart();
 
   var origins = [
     [[0, 0], [0,  1], [1,   1], [1,  0]],
@@ -49,6 +45,24 @@ var Board = function(tools) {
     [[9, 9], [9, 10], [10, 10], [10, 9]],
     [[9, 0], [9,  1], [10,  1], [10, 0]]
   ];
+
+  var locations;
+  
+  function restart() {
+    board = initial;
+    locations = origins.reduce(function(state, origins, playerIndex) {
+      var player = playerIndex + 1;
+      state = state.concat(origins.map(function(v, idx) {
+        return {
+          id: 'p' + player + '_' + (idx + 1),
+          player: player,
+          v: v
+        };
+      }));
+      return state;
+    }, []);
+  }
+  restart();
 
   var starts = [
     [4, 0], [0, 6], [6, 10], [10, 4]
@@ -71,28 +85,17 @@ var Board = function(tools) {
   var max = qpaths.length*qpaths[0].length;
 
   function getPawn(v) {
-    return board[v[0]][v[1]] % 10;
-  }
-
-  function getField(v) {
-    return tools.div(board[v[0]][v[1]], 10)*10;
-  }
-
-  function setPawn(player, v) {
-    board[v[0]][v[1]] = getField(v) + player;
-  }
-
-  function removePawn(v) {
-    var pawn = getPawn(v);
-    setPawn(0, v);
-    return pawn;
+    var idx = locations.findIndex(function(e) {
+      return e.v[0] == v[0] && e.v[1] == v[1];
+    });
+    return idx > -1 ? locations[idx] : {player: 0};
   }
 
   function getFreeOriginCoords(player) {
     var playerOrigins = origins[player - 1];
     for (var i = playerOrigins.length - 1; i >= 0; --i) {
       var v = playerOrigins[i];
-      if (player !== getPawn(v)) {
+      if (player !== getPawn(v).player) {
         return v;
       }
     }
@@ -101,20 +104,20 @@ var Board = function(tools) {
 
   function movePawn(fromCoords, toCoords, dryRun) {
     var affectedPlayers = [];
-    var playerAtFromCoords = dryRun ? getPawn(fromCoords) : removePawn(fromCoords);
-    var playerAtToCoords = dryRun ? getPawn(toCoords) : removePawn(toCoords);
+    var pawnAtFromCoords = getPawn(fromCoords);
+    var pawnAtToCoords = getPawn(toCoords);
 
-    if (playerAtFromCoords > 0) {
+    if (pawnAtFromCoords.player > 0) {
       if (!dryRun) {
-        setPawn(playerAtFromCoords, toCoords);
+        pawnAtFromCoords.v = toCoords;
       }
-      affectedPlayers.push(playerAtFromCoords);
-      if (playerAtToCoords > 0) {
-        var originCoords = getFreeOriginCoords(playerAtToCoords);
+      affectedPlayers.push(pawnAtFromCoords.player);
+      if (pawnAtToCoords.player > 0) {
+        var originCoords = getFreeOriginCoords(pawnAtToCoords.player);
         if (!dryRun) {
-          setPawn(playerAtToCoords, originCoords);
+          pawnAtToCoords.v = originCoords;
         }
-        affectedPlayers.push(playerAtToCoords);
+        affectedPlayers.push(pawnAtToCoords.player);
       }
     }
     return affectedPlayers;
@@ -123,7 +126,7 @@ var Board = function(tools) {
   function getFreeDestinationCoords(player) {
     var playerDestinations = destinations[player - 1];
     var idx = playerDestinations.findIndex(function(v) {
-      return player !== getPawn(v);
+      return player !== getPawn(v).player;
     });
     return playerDestinations[idx];
   }
@@ -131,25 +134,9 @@ var Board = function(tools) {
   function getOccupiedOriginCoords(player) {
     var playerOrigins = origins[player - 1];
     var idx = playerOrigins.findIndex(function(v) {
-      return player === getPawn(v);
+      return player === getPawn(v).player;
     });
     return playerOrigins[idx];
-  }
-
-  function getCoordsOfPlayerOffset(player, offset) {
-    if (offset < 0) {
-      return getOccupiedOriginCoords(player);
-    }
-
-    var qpathsLength = qpaths.length;
-    var qpathLength = qpaths[0].length;
-    var qpathIndex = tools.div(offset, qpathLength);
-    if (qpathIndex < qpathsLength) {
-      var qpathIndex2 = (qpathIndex + player - 1)%qpathsLength;
-      return qpaths[qpathIndex2][offset%qpathLength];
-    }
-
-    return getFreeDestinationCoords(player);
   }
 
   var players = [p1, p2, p3, p4];
@@ -235,7 +222,7 @@ var Board = function(tools) {
       },
       getPawn: function(player, offset) {
         var coords = getCoordsOfPlayerOffset(player, clampOffset(offset));
-        return getPawn(coords);
+        return getPawn(coords).player;
       },
       movePawn: function(player, fromOffset, toOffset) {
         return doMovePawn(player, fromOffset, toOffset, offsets);
@@ -271,10 +258,9 @@ var Board = function(tools) {
   return {
     players: players,
     board: board,
+    locations: locations,
     // basics
     getPawn: getPawn,
-    setPawn: setPawn,
-    removePawn: removePawn,
     movePawn: movePawn,
     // offsets
     offsetBoard: offsetBoard
@@ -448,13 +434,14 @@ function GameEngine(moveEngine, tools, $scope, $timeout) {
   };
 }
 
+var tools = Tools();
+var board = Board(tools);
+
 var app = angular.module("Chińczyk", []);
 app.controller("MainCtrl", function($scope, $timeout) {
 
   var c = 11;
 
-  var tools = Tools();
-  var board = Board(tools);
   var moveEngine = MoveEngine(board.offsetBoard);
   var game = GameEngine(moveEngine, tools, $scope, $timeout);
 
@@ -473,9 +460,12 @@ app.controller("MainCtrl", function($scope, $timeout) {
   $scope.pawnMargin = 5;
   $scope.pawnRadius = ($scope.tileSize - 2*$scope.pawnMargin)/2;
 
-  $scope.pawnClass = function(col) {
-    var player = col%10;
+  $scope.pawnClass = function(field) {
+    var player = field%10;
     return "p" + player;
+  };
+  $scope.hasPawn = function(field, x, y) {
+    return field%10 > 0;
   };
   $scope.pawnOffsetX = function(index) {
     return $scope.tileOffsetX(index) + $scope.pawnMargin + $scope.pawnRadius;
@@ -533,4 +523,6 @@ app.controller("MainCtrl", function($scope, $timeout) {
   $scope.resetGame = function() {
 
   };
+
+  $scope.locations = board.locations;
 });
