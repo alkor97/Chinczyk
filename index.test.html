@@ -28,11 +28,11 @@
 
     describe('board', function() {
       var board;
-      var offsetBoard;
+      var locationsBoard;
       var p1, p2;
       beforeEach(function() {
         board = Board(Tools());
-        offsetBoard = board.offsetBoard;
+        locationsBoard = board.locationsBoard;
         p1 = board.players[0];
         p2 = board.players[1];
       });
@@ -69,94 +69,104 @@
         it('moving pawn in dry run does not change board state', function() {
           const fromCoords = [0, 0];
           const toCoords = [4, 0];
-          board.movePawn(fromCoords, toCoords, true);
+          var cloned = tools.clone(board.locations);
+          board.movePawn(fromCoords, toCoords, cloned);
           expect(board.getPawn(fromCoords).player).toBe(p1);
           expect(board.getPawn(toCoords).player).toBe(0);
         });
       });
-      describe('offsetBoard', function() {
-        describe('getPawn', function() {
-          it('origin contains p1', function() {
-            expect(offsetBoard.getPawn(p1, -1)).toBe(p1);
-          });
-          it('start does not contain any pawn', function() {
-            expect(offsetBoard.getPawn(p1, 0)).toBe(0);
-          });
-        });
+      describe('locationsBoard', function() {
         describe('movePawn', function() {
           it('moves pawn to empty field', function() {
-            offsetBoard.movePawn(p1, -1, 0);
-            expect(offsetBoard.getPawn(p1, 0)).toBe(p1);
+            var affected = locationsBoard.movePawn(p1, -1, 0);
+            expect(affected.length).toBe(1);
+            expect(affected[0].player).toBe(p1);
+            expect(affected[0].offset).toBe(0);
             expect(board.getPawn([0, 0]).player).toBe(0);
-            expect(offsetBoard.getOffsets(p1)).toEqual([0, -1, -1, -1]);
             expect(board.getPawn([4, 0]).player).toBe(p1);
 
-            offsetBoard.movePawn(p1, 0, 1);
-            expect(offsetBoard.getPawn(p1, 1)).toBe(p1);
+            affected = locationsBoard.movePawn(p1, 0, 1);
+            expect(affected.length).toBe(1);
+            expect(affected[0].player).toBe(p1);
+            expect(affected[0].offset).toBe(1);
             expect(board.getPawn([4, 1]).player).toBe(p1);
-            expect(offsetBoard.getPawn(p1, 0)).toBe(0);
             expect(board.getPawn([4, 0]).player).toBe(0);
-            expect(offsetBoard.getOffsets(p1)).toEqual([1, -1, -1, -1]);
           });
           it('resets other player', function() {
-            offsetBoard.movePawn(p1, -1, 0);
-            offsetBoard.movePawn(p2, -1, 30);
-            expect(offsetBoard.getPawn(p1, 0)).toBe(p2);
+            var affected = locationsBoard.movePawn(p1, -1, 0);
+            expect(affected.length).toBe(1);
+            expect(affected[0].player).toBe(p1);
+            expect(affected[0].offset).toBe(0);
+
+            affected = locationsBoard.movePawn(p2, -1, 30);
+            expect(affected.length).toBe(2);
+
+            expect(affected[0].player).toBe(p2);
+            expect(affected[0].offset).toBe(30);
             expect(board.getPawn([4, 0]).player).toBe(p2);
-            expect(offsetBoard.getOffsets(p1)).toEqual([-1, -1, -1, -1]);
+
+            expect(affected[1].player).toBe(p1);
+            expect(affected[1].offset).toBe(-1);
             expect(board.getPawn([0, 0]).player).toBe(p1);
-            expect(offsetBoard.getOffsets(p2)).toEqual([30, -1, -1, -1]);
           });
           it('move pawn to destination', function() {
-            offsetBoard.movePawn(p1, -1, 45);
-            expect(offsetBoard.getOffsets(p1)).toEqual([40, -1, -1, -1]);
+            var affected = locationsBoard.movePawn(p1, -1, 45);
+            expect(affected.length).toBe(1);
+            expect(affected[0].player).toBe(p1);
+            expect(affected[0].offset).toBe(40);
             expect(board.getPawn([5, 4]).player).toBe(p1);
 
-            offsetBoard.movePawn(p1, -1, 43);
-            expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, -1, -1]);
+            affected = locationsBoard.movePawn(p1, -1, 43);
+            expect(affected.length).toBe(1);
+            expect(affected[0].player).toBe(p1);
+            expect(affected[0].offset).toBe(40);
             expect(board.getPawn([5, 3]).player).toBe(p1);
 
-            offsetBoard.movePawn(p1, -1, 41);
-            expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, 40, -1]);
+            affected = locationsBoard.movePawn(p1, -1, 41);
+            expect(affected.length).toBe(1);
+            expect(affected[0].player).toBe(p1);
+            expect(affected[0].offset).toBe(40);
             expect(board.getPawn([5, 2]).player).toBe(p1);
 
-            offsetBoard.movePawn(p1, -1, 40);
-            expect(offsetBoard.getOffsets(p1)).toEqual([40, 40, 40, 40]);
+            affected = locationsBoard.movePawn(p1, -1, 40);
+            expect(affected.length).toBe(1);
+            expect(affected[0].player).toBe(p1);
+            expect(affected[0].offset).toBe(40);
             expect(board.getPawn([5, 1]).player).toBe(p1);
           });
         });
         describe('evaluatePawnMove', function() {
           it('evaluates move to start', function() {
-            expect(offsetBoard.evaluatePawnMove(p1, -1, 0)).toEqual([-3, -4, -4, -4]);
+            expect(locationsBoard.evaluatePawnMove(p1, -1, 0)).toEqual([-3, -4, -4, -4]);
           });
         });
         describe('anythingInOrigin', function() {
           it('returns true when all pawns are in origin', function() {
-            expect(offsetBoard.anythingInOrigin(p1)).toBe(true);
+            expect(locationsBoard.anythingInOrigin(p1)).toBe(true);
           });
           it('returns true when one pawn leaves origin', function() {
-            offsetBoard.movePawn(p1, -1, 0);
-            expect(offsetBoard.anythingInOrigin(p1)).toBe(true);
+            locationsBoard.movePawn(p1, -1, 0);
+            expect(locationsBoard.anythingInOrigin(p1)).toBe(true);
           });
           it('returns false when origin is empty', function() {
-            offsetBoard.movePawn(p1, -1, 0);
-            offsetBoard.movePawn(p1, -1, 1);
-            offsetBoard.movePawn(p1, -1, 2);
-            offsetBoard.movePawn(p1, -1, 3);
-            expect(offsetBoard.anythingInOrigin(p1)).toBe(false);
+            locationsBoard.movePawn(p1, -1, 0);
+            locationsBoard.movePawn(p1, -1, 1);
+            locationsBoard.movePawn(p1, -1, 2);
+            locationsBoard.movePawn(p1, -1, 3);
+            expect(locationsBoard.anythingInOrigin(p1)).toBe(false);
           });
         });
       });
     });
     describe('MoveEngine', function() {
       var board;
-      var offsetBoard;
+      var locationsBoard;
       var moveEngine;
       var p1, p2;
       beforeEach(function() {
         board = Board(Tools());
-        offsetBoard = board.offsetBoard;
-        moveEngine = MoveEngine(offsetBoard);
+        locationsBoard = board.locationsBoard;
+        moveEngine = MoveEngine(locationsBoard);
         p1 = board.players[0];
         p2 = board.players[1];
       });
@@ -172,7 +182,7 @@
           }]);
         });
         it('returns 0->3 move when pawn is on start and dice is 3', function() {
-          offsetBoard.movePawn(p1, -1, 0);
+          locationsBoard.movePawn(p1, -1, 0);
           expect(moveEngine.getAllowedMoves(p1, 3)).toEqual([{
             from: 0,
             to: 3,
@@ -180,7 +190,7 @@
           }]);
         });
         it('returns -1->0 and 0->6 when one pawn is on start and dice is 6', function() {
-          offsetBoard.movePawn(p1, -1, 0);
+          locationsBoard.movePawn(p1, -1, 0);
           expect(moveEngine.getAllowedMoves(p1, 6)).toEqual([
             {
               from: -1,
@@ -195,8 +205,9 @@
       });
       describe('movePawn', function() {
         it('moves pawn', function() {
-          moveEngine.movePawn(p1, {from: -1, to: 3});
-          expect(offsetBoard.getPawn(p1, 3)).toBe(p1);
+          var affected = moveEngine.movePawn(p1, {from: -1, to: 3});
+          expect(affected.length).toBe(1);
+          expect(affected[0].player).toBe(p1);
         });
       });
     });
