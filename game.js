@@ -57,6 +57,7 @@ var Board = function(tools) {
             id: 'p' + player + '_' + (idx + 1),
             player: player,
             v: v,
+            w: [-1, -1],
             offset: -1
           };
         }));
@@ -67,6 +68,8 @@ var Board = function(tools) {
         location.offset = -1;
         location.v[0] = origins[location.player - 1][index%4][0];
         location.v[1] = origins[location.player - 1][index%4][1];
+        location.w[0] = -1;
+        location.w[1] = -1;
       });
     }
   }
@@ -110,20 +113,33 @@ var Board = function(tools) {
     return undefined;
   }
 
-  function movePawn(fromCoords, toCoords, explicitLocations) {
-    var affectedPawns = [];
+  function getPawnMoves(fromCoords, toCoords, explicitLocations) {
     var pawnAtFromCoords = getPawn(fromCoords, explicitLocations);
     var pawnAtToCoords = getPawn(toCoords, explicitLocations);
+    var moves = [];
 
     if (pawnAtFromCoords.player > 0) {
-      pawnAtFromCoords.v = toCoords;
-      affectedPawns.push(pawnAtFromCoords);
+      moves.push({
+        pawn: pawnAtFromCoords,
+        to: toCoords
+      });
       if (pawnAtToCoords.player > 0) {
-        pawnAtToCoords.v = getFreeOriginCoords(pawnAtToCoords.player, explicitLocations);
-        affectedPawns.push(pawnAtToCoords);
+        var toFreeCoords = getFreeOriginCoords(pawnAtToCoords.player, explicitLocations);
+        moves.push({
+          pawn: pawnAtToCoords,
+          to: toFreeCoords
+        });
       }
     }
-    return affectedPawns;
+    return moves;
+  }
+
+  function movePawn(fromCoords, toCoords, explicitLocations) {
+    var moves = getPawnMoves(fromCoords, toCoords, explicitLocations);
+    return moves.map(function(move) {
+      move.pawn.v = move.to;
+      return move.pawn;
+    });
   }
 
   function getFreeDestinationCoords(player, explicitLocations) {
@@ -158,7 +174,8 @@ var Board = function(tools) {
     var qpathIndex = tools.div(offset, qpathLength);
     if (qpathIndex < qpathsLength) {
       var qpathIndex2 = (qpathIndex + player - 1)%qpathsLength;
-      return qpaths[qpathIndex2][offset%qpathLength];
+      var coords = qpaths[qpathIndex2][offset%qpathLength];
+      return [coords[0], coords[1]];
     }
 
     return getFreeDestinationCoords(player, explicitLocations);
@@ -231,10 +248,20 @@ var Board = function(tools) {
     movePawn: function(player, fromOffset, toOffset) {
       return doMovePawn(player, fromOffset, toOffset, locations);
     },
+    getPawnMoves: function(player, fromOffset, toOffset) {
+      fromOffset = clampOffset(fromOffset);
+      toOffset = clampOffset(toOffset);
+      var fromCoords = getCoordsOfPlayerOffset(player, fromOffset, locations);
+      var toCoords = getCoordsOfPlayerOffset(player, toOffset, locations);
+      return getPawnMoves(fromCoords, toCoords, locations);
+    },
     getPlayers: function() {
       return players;
     },
-    reset: reset
+    reset: reset,
+    getCoords: function(player, offset) {
+      return getCoordsOfPlayerOffset(player, offset, locations);
+    }
   };
 
   return {
@@ -309,6 +336,12 @@ function MoveEngine(locationsBoard) {
     },
     reset: function() {
       locationsBoard.reset();
+    },
+    getCoords: function(player, offset) {
+      return locationsBoard.getCoords(player, offset);
+    },
+    getPawnMoves: function(player, fromOffset, toOffset) {
+      return locationsBoard.getPawnMoves(player, fromOffset, toOffset);
     }
   };
 }
@@ -371,7 +404,7 @@ function GameEngine(moveEngine, tools, $scope, $timeout) {
     if (moveEngine.playerCannotMove($scope.player) && $scope.dice !== 6) {
       step(tryToStart, $scope.usedTimeout/2);
     } else {
-      step(performMove, $scope.usedTimeout/2);
+      step(performMove, 1);
     }
   }
 
@@ -385,19 +418,55 @@ function GameEngine(moveEngine, tools, $scope, $timeout) {
     }
   }
 
+  function moveVisually(player, move, afterAnimation) {
+    var moves = moveEngine.getPawnMoves(player, move.from, move.to);
+    var movesCount = moves.length;
+    moves.forEach(function(move) {
+      var dimCount = 2;
+      var pawn = move.pawn;
+      var toCoords = move.to;
+
+      // lines below enable animate elements of pawn's circle...
+      pawn.w[0] = toCoords[0];
+      pawn.w[1] = toCoords[1];
+
+      // ...but change will be visible a moment later
+      step(function() {
+        var animates = document.querySelectorAll('#' + pawn.id + '>animate');
+        animates.forEach(function(e) {
+          e.beginElement();
+          e.onend = function() {
+            e.onend = undefined;
+            if (!--dimCount) {
+              pawn.w[0] = -1;
+              pawn.w[1] = -1;
+              if (!--movesCount) {
+                step(afterAnimation, 1);
+              }
+            }
+          };
+        });
+      }, 1);
+    });
+  }
+
   function performMove() {
     var allowedMoves = moveEngine.getAllowedMoves($scope.player, $scope.dice);
     if (allowedMoves.length > 0) {
       var sortedMoves = sortMoves($scope.player, allowedMoves);
-      moveEngine.movePawn($scope.player, sortedMoves[0]);
+      moveVisually($scope.player, sortedMoves[0], function() {
+        moveEngine.movePawn($scope.player, sortedMoves[0]);
+        if ($scope.dice === 6 && !moveEngine.playerHasFinished($scope.player)) {
+          $scope.dice = 0;
+          step(throwDice);
+          return;
+        }
+        finishRound();
+      });
       //angular.element(document.body).scope().$root.$apply();
-      if ($scope.dice === 6 && !moveEngine.playerHasFinished($scope.player)) {
-        $scope.dice = 0;
-        step(throwDice);
-        return;
-      }
+    } else {
+      finishRound();
     }
-    finishRound();
   }
 
   function finishRound() {
@@ -471,10 +540,14 @@ app.controller("MainCtrl", function($scope, $timeout) {
     return field%10 > 0;
   };
   $scope.pawnOffsetX = function(index) {
-    return $scope.tileOffsetX(index) + $scope.pawnMargin + $scope.pawnRadius;
+    var value = $scope.tileOffsetX(index) + $scope.pawnMargin + $scope.pawnRadius;
+    //console.log('x: ' + index + '/' + value);
+    return value;
   };
   $scope.pawnOffsetY = function(index) {
-    return $scope.tileOffsetY(index) + $scope.pawnMargin + $scope.pawnRadius;
+    value = $scope.tileOffsetY(index) + $scope.pawnMargin + $scope.pawnRadius;
+    //console.log('y: ' + index + '/' + value);
+    return value;
   };
   $scope.tileOffsetX = function(index) {
     return $scope.boardMarginX + ($scope.tileSize + $scope.tileMargin)*index;

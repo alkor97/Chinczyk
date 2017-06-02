@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html ng-app="Chińczyk">
+
 <head>
-  <meta charset="UTF-8">
-  <title>Chińczyk</title>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+    <meta charset="UTF-8">
+    <title>Chińczyk</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
 </head>
+
 <body ng-controller="MainCtrl">
-  <svg ng-attr-width="{{boardWidth}}" ng-attr-height="{{boardHeight}}">
+    <svg ng-attr-width="{{boardWidth}}" ng-attr-height="{{boardHeight}}">
     <style type="text/css">
       svg {
         background: lightgray;
@@ -73,8 +75,21 @@
     </g>
     <g>
       <circle ng-repeat="entry in locations track by $index"
-        ng-attr-cx="{{pawnOffsetX(entry.v[1])}}" ng-attr-cy="{{pawnOffsetY(entry.v[0])}}"
-        ng-attr-r="{{pawnRadius}}" ng-class="pawnClass(entry.player)"/>
+        ng-attr-id="{{entry.id}}"
+        ng-attr-cx="{{pawnOffsetX(entry.v[1])}}"
+        ng-attr-cy="{{pawnOffsetY(entry.v[0])}}"
+        ng-attr-r="{{pawnRadius}}" ng-class="pawnClass(entry.player)">
+        <animate attributeName="cx" attributeType="XML"
+          ng-if="entry.w[1] > -1"
+          ng-attr-to="{{pawnOffsetX(entry.w[1])}}"
+          begin="indefinite" ng-attr-dur="{{usedTimeout/2 + 'ms'}}"
+          fill="freeze"/>
+        <animate attributeName="cy" attributeType="XML"
+          ng-if="entry.w[0] > -1"
+          ng-attr-to="{{pawnOffsetY(entry.w[0])}}"
+          begin="indefinite" ng-attr-dur="{{usedTimeout/2 + 'ms'}}"
+          fill="freeze"/>
+      </circle>
     </g>
     <g>
       <g ng-repeat="diceObject in diceObjects" ng-attr-transform="{{diceObject.transform}}">
@@ -89,7 +104,8 @@
       </g>
     </g>
   </svg>
-  <button ng-click="triggerGame()" ng-disabled="gamePausing">{{gamePaused ? "start" : "pause"}}</button>
-  <script type="text/javascript" src="game.js"/>
+    <button ng-click="triggerGame()" ng-disabled="gamePausing">{{gamePaused ? "start" : "pause"}}</button>
+    <script type="text/javascript" src="game.js" />
 </body>
+
 </html>
