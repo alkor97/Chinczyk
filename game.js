@@ -589,7 +589,7 @@ app.controller("MainCtrl", function($scope, $timeout) {
 
   $scope.triggerGame = function() {
     if ($scope.gamePaused) {
-      game.playGame(2);
+      game.playGame(250);
     } else {
       game.pauseGame();
     }
