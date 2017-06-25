@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html ng-app="Chińczyk">
+
 <head>
   <meta charset="UTF-8">
   <title>Chińczyk</title>
@@ -11,8 +12,9 @@
   <script type="text/javascript" src="js/GameEngine.js"></script>
   <script type="text/javascript" src="js/Game.js"></script>
 </head>
+
 <body ng-controller="MainCtrl">
-  <svg ng-attr-width="{{boardWidth}}" ng-attr-height="{{boardHeight}}">
+    <svg ng-attr-width="{{boardWidth}}" ng-attr-height="{{boardHeight}}">
     <style type="text/css">
       svg {
         background: lightgray;
@@ -110,4 +112,5 @@
   </svg>
   <button ng-click="triggerGame()" ng-disabled="gamePausing">{{gamePaused ? "start" : "pause"}}</button>
 </body>
+
 </html>
