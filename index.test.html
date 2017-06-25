@@ -11,7 +11,7 @@
     <script type="text/javascript" src="https://code.angularjs.org/1.4.0-rc.2/angular-mocks.js"></script>
 
     <!-- test coverage -->
-    <script type="text/javascript" src="blanket_jasmine.js"></script>
+    <script type="text/javascript" src="js/blanket_jasmine.js"></script>
 
     <script type="text/javascript" src="js/Tools.js"></script>
     <script type="text/javascript" src="js/Board.js"></script>
@@ -182,8 +182,8 @@
       var p1, p2;
       beforeEach(function() {
         board = new Board();
-        locationBoard = board.locations;
-        moveEngine = MoveEngine(locationBoard);
+        locationBoard = new LocationBoard(board);
+        moveEngine = new MoveEngine(locationBoard);
         p1 = board.players[0];
         p2 = board.players[1];
       });
